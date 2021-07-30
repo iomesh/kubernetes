@@ -94,6 +94,13 @@ func CreateVolumeResource(driver TestDriver, config *PerTestConfig, pattern Test
 			}
 			r.Sc.AllowVolumeExpansion = &pattern.AllowExpansion
 
+			if pattern.NeedAuth {
+				authDriver, ok := driver.(AuthTestDriver)
+				framework.ExpectEqual(ok, true, "driver should implements AuthTestDriver interface in auth test pattern")
+				authParams := authDriver.GetStorageClassAuthParameters(r.Config)
+				mergeStorageClassParameters(r.Sc, authParams)
+			}
+
 			ginkgo.By("creating a StorageClass " + r.Sc.Name)
 
 			r.Sc, err = cs.StorageV1().StorageClasses().Create(context.TODO(), r.Sc, metav1.CreateOptions{})
@@ -313,3 +320,26 @@ func isDelayedBinding(sc *storagev1.StorageClass) bool {
 	}
 	return false
 }
+
+func mergeStorageClassParameters(sc *storagev1.StorageClass, params map[string]string) {
+	for k, v := range params {
+		sc.Parameters[k] = v
+	}
+}
+
+// func setSCAuthInfo(sc *storagev1.StorageClass, stages []CSIStage, namespace string) {
+// 	const (
+// 		prefix                = "csi.storage.k8s.io"
+// 		secretNameSuffix      = "secret-name"
+// 		secretNameSpaceSuffix = "secret-namespace"
+// 	)
+//
+// 	for _, stage := range stages {
+// 		secretNameKey := fmt.Sprintf("%s/%s-%s", prefix, stage, secretNameSuffix)
+// 		secretNameValue := stage
+// 		secretNameSpaceKey := fmt.Sprintf("%s/%s-%s", prefix, stage, secretNameSpaceSuffix)
+// 		secretNameSpaceValue := namespace
+// 		sc.Parameters[secretNameKey] = string(secretNameValue)
+// 		sc.Parameters[secretNameSpaceKey] = secretNameSpaceValue
+// 	}
+// }

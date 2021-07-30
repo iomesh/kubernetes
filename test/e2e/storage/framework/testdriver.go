@@ -135,6 +135,17 @@ type CustomTimeoutsTestDriver interface {
 	GetTimeouts() *framework.TimeoutContext
 }
 
+// AuthTestDriver represents an interface for a TestDriver that supports auth
+type AuthTestDriver interface {
+	TestDriver
+
+	GetStorageClassAuthParameters(config *PerTestConfig) map[string]string
+
+	GetAuthInfo() map[string]string
+
+	GetAuthMatchGroup() [][]CSIStorageClassAuthParamKey
+}
+
 // GetDriverTimeouts returns the timeout of the driver operation
 func GetDriverTimeouts(driver TestDriver) *framework.TimeoutContext {
 	if d, ok := driver.(CustomTimeoutsTestDriver); ok {
@@ -174,6 +185,25 @@ const (
 	// for dynamic provisioning exists, the driver is expected to provide
 	// capacity information for it.
 	CapCapacity Capability = "capacity"
+)
+
+// CSIStage represents which CSI operation need authorized, CSI's external-provisioner sidecar supports
+// the following keys in StorageClass.parameters. More detail in
+// https://kubernetes-csi.github.io/docs/secrets-and-credentials-storage-class.html
+type CSIStorageClassAuthParamKey string
+
+const (
+	CSIProvisionerSecretName       CSIStorageClassAuthParamKey = "csi.storage.k8s.io/provisioner-secret-name"
+	CSIControllerPublishSecretName CSIStorageClassAuthParamKey = "csi.storage.k8s.io/controller-publish-secret-name"
+	CSINodeStageSecretName         CSIStorageClassAuthParamKey = "csi.storage.k8s.io/node-stage-secret-name"
+	CSINodePublishSecretName       CSIStorageClassAuthParamKey = "csi.storage.k8s.io/node-publish-secret-name"
+	CSIControllerExpandSecretName  CSIStorageClassAuthParamKey = "csi.storage.k8s.io/controller-expand-secret-name"
+
+	CSIProvisionerSecretNS       CSIStorageClassAuthParamKey = "csi.storage.k8s.io/provisioner-secret-namespace"
+	CSIControllerPublishSecretNS CSIStorageClassAuthParamKey = "csi.storage.k8s.io/controller-publish-secret-namespace"
+	CSINodeStageSecretNS         CSIStorageClassAuthParamKey = "csi.storage.k8s.io/node-stage-secret-namespace"
+	CSINodePublishSecretNS       CSIStorageClassAuthParamKey = "csi.storage.k8s.io/node-publish-secret-namespace"
+	CSIControllerExpandSecretNS  CSIStorageClassAuthParamKey = "csi.storage.k8s.io/controller-expand-secret-namespace"
 )
 
 // DriverInfo represents static information about a TestDriver.
