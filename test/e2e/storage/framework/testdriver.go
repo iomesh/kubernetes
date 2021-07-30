@@ -17,13 +17,14 @@ limitations under the License.
 package framework
 
 import (
-	"k8s.io/api/core/v1"
+	"time"
+
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2evolume "k8s.io/kubernetes/test/e2e/framework/volume"
-	"time"
 )
 
 // TestDriver represents an interface for a driver to be tested in TestSuite.
@@ -134,6 +135,33 @@ type CustomTimeoutsTestDriver interface {
 	GetTimeouts() *framework.TimeoutContext
 }
 
+// AuthTestDriver represents an interface for a TestDriver that supports auth
+type AuthTestDriver interface {
+	TestDriver
+
+	// GetStorageClassAuthParameters get the StorageClass auth related parameters, these parameters' key
+	// normal use type CSIStorageClassAuthParamKey, for an implementation example:
+	//
+	// func (d *Driver) GetStorageClassAuthParameters(config *PerTestConfig) map[string]string {
+	//         return map[string]string{
+	//                 "auth": "true",
+	//                 CSIControllerPublishSecretName.ToString(): "controller-publish-secret",
+	//                 CSIControllerPublishSecretNS.ToString():   config.Framework.Namespace.Name,
+	//                 CSINodeStageSecretName.ToString():         "node-stage-secret",
+	//                 CSINodeStageSecretNS.ToString():           config.Framework.Namespace.Name,
+	//         }
+	// }
+	GetStorageClassAuthParameters(config *PerTestConfig) map[string]string
+
+	// GetAuthSecretData get the data in secret which define in StorageClass parameters, the return map
+	// will be filled into the stringData field of k8s corev1.Secret struct
+	GetAuthSecretData() map[string]string
+
+	// GetAuthMatchGroup declare some match group, CSIStorageClassAuthParamKey in the same group must have same
+	// data secret to pass authentication
+	GetAuthMatchGroup() [][]CSIStorageClassAuthParamKey
+}
+
 // GetDriverTimeouts returns the timeout of the driver operation
 func GetDriverTimeouts(driver TestDriver) *framework.TimeoutContext {
 	if d, ok := driver.(CustomTimeoutsTestDriver); ok {
@@ -173,6 +201,31 @@ const (
 	// capacity information for it.
 	CapCapacity Capability = "capacity"
 )
+
+// CSIStorageClassAuthParamKey represents which CSI operation need authorized, CSI's external-provisioner sidecar supports
+// specific keys in StorageClass.parameters. More detail in
+// https://kubernetes-csi.github.io/docs/secrets-and-credentials-storage-class.html
+type CSIStorageClassAuthParamKey string
+
+// const AuthParamKeyPrefix = "csi.storage.k8s.io/"
+const (
+	AuthParamKeyPrefix                                         = "csi.storage.k8s.io/"
+	CSIProvisionerSecretName       CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "provisioner-secret-name"
+	CSIControllerPublishSecretName CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "controller-publish-secret-name"
+	CSINodeStageSecretName         CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "node-stage-secret-name"
+	CSINodePublishSecretName       CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "node-publish-secret-name"
+	CSIControllerExpandSecretName  CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "controller-expand-secret-name"
+
+	CSIProvisionerSecretNS       CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "provisioner-secret-namespace"
+	CSIControllerPublishSecretNS CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "controller-publish-secret-namespace"
+	CSINodeStageSecretNS         CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "node-stage-secret-namespace"
+	CSINodePublishSecretNS       CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "node-publish-secret-namespace"
+	CSIControllerExpandSecretNS  CSIStorageClassAuthParamKey = AuthParamKeyPrefix + "controller-expand-secret-namespace"
+)
+
+func (key CSIStorageClassAuthParamKey) ToString() string {
+	return string(key)
+}
 
 // DriverInfo represents static information about a TestDriver.
 type DriverInfo struct {
