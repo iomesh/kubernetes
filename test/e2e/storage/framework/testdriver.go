@@ -151,11 +151,18 @@ type AuthTestDriver interface {
 	//                 CSINodeStageSecretNS.ToString():           config.Framework.Namespace.Name,
 	//         }
 	// }
+	//
 	GetStorageClassAuthParameters(config *PerTestConfig) map[string]string
 
 	// GetAuthSecretData get the data in secret which define in StorageClass parameters, the return map
-	// will be filled into the stringData field of k8s corev1.Secret struct
-	GetAuthSecretData() map[string]string
+	// will be filled into the stringData field of k8s corev1.Secret struct.
+	//
+	// If the number of returned maps is greater than one, multiple secret(in multiple StorageClassa) tests
+	// will be performed automatically,This is the recommended practice.
+	//
+	// Users should ensure that these data are correct,which meaning CSI can use these data to successfully
+	// create/pulish pv etc.
+	GetAuthSecretData() []map[string]string
 
 	// GetAuthMatchGroup declare some match group, CSIStorageClassAuthParamKey in the same group must have same
 	// data secret to pass authentication
