@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo"
+
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,9 +33,8 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	storageframework "github.com/iomesh/kubernetes/test/e2e/storage/framework"
-	storageutils "github.com/iomesh/kubernetes/test/e2e/storage/utils"
+	storageframework "k8s.io/kubernetes/test/e2e/storage/framework"
+	storageutils "k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
 type authTestSuite struct {
