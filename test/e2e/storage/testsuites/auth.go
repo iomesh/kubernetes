@@ -274,12 +274,27 @@ func (a *authTestSuite) DefineTests(driver storageframework.TestDriver, pattern 
 		_, err := e2epod.CreateSecPod(f.ClientSet, l.podConfig, f.Timeouts.PodStartShort)
 		framework.ExpectNoError(err)
 
-		ginkgo.By("creating a StorageClass with SecretB")
+		ginkgo.By("generating a StorageClass with SecretB")
 		storageClassWithSecretB := l.resource.Sc.DeepCopy()
 		storageClassWithSecretB.ObjectMeta = metav1.ObjectMeta{
 			Name: l.resource.Sc.Name + "-with-secret-b",
 		}
-		cleanStorageClassAuthParams(storageClassWithSecretB, l.scAuthParams)
+
+		ginkgo.By("creating SecretB and fill in storageClassWithSecretB's params")
+		secretDataIndex := rand.Intn(len(l.authSecretData)-1) + 1
+		for paramKey, paramValue := range l.scAuthParams {
+			if strings.HasSuffix(paramKey, "secret-name") {
+				secretBName := paramValue + "-secret-b"
+				err := createOrUpdateSecret(f.ClientSet, f.Namespace.Name,
+					secretBName, l.authSecretData[secretDataIndex])
+				framework.ExpectNoError(err, "Failed to create secret: ", secretBName)
+
+				// set SecretB in storageclass params
+				storageClassWithSecretB.Parameters[paramKey] = secretBName
+			}
+		}
+
+		ginkgo.By("creating a StorageClass with SecretB")
 		_, err = f.ClientSet.StorageV1().StorageClasses().Create(context.TODO(),
 			storageClassWithSecretB, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
@@ -294,17 +309,6 @@ func (a *authTestSuite) DefineTests(driver storageframework.TestDriver, pattern 
 		pvWithSecretB, err := f.ClientSet.CoreV1().PersistentVolumeClaims(f.Namespace.Name).Create(context.TODO(),
 			pvcWithSecretB, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
-
-		ginkgo.By("creating SecretB")
-		secretDataIndex := rand.Intn(len(l.authSecretData)-1) + 1
-		for paramKey, paramValue := range l.scAuthParams {
-			if strings.HasSuffix(paramKey, "secret-name") {
-				secretBName := paramValue + "-secret-b"
-				err := createOrUpdateSecret(f.ClientSet, f.Namespace.Name,
-					secretBName, l.authSecretData[secretDataIndex])
-				framework.ExpectNoError(err, "Failed to create secret: ", secretBName)
-			}
-		}
 
 		l.podConfig.PVCs = []*v1.PersistentVolumeClaim{pvcWithSecretB}
 
