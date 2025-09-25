@@ -52,8 +52,9 @@ import (
 const (
 	// The short keepalive timeout and interval have been chosen to aggressively
 	// detect a failed etcd server without introducing much overhead.
-	keepaliveTime    = 30 * time.Second
-	keepaliveTimeout = 10 * time.Second
+	// grcp package force it >= 10s
+	keepaliveTime    = 10 * time.Second
+	keepaliveTimeout = 1 * time.Second
 
 	// dialTimeout is the timeout for failing to establish a connection.
 	// It is set to 20 seconds as times shorter than that will cause TLS connections to fail
@@ -180,6 +181,7 @@ func newETCD3Client(c storagebackend.TransportConfig) (*clientv3.Client, error) 
 		Endpoints:            c.ServerList,
 		TLS:                  tlsConfig,
 	}
+	klog.Infof("etcd client config %#v", cfg)
 
 	return clientv3.New(cfg)
 }
